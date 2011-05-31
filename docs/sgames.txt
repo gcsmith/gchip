@@ -1,0 +1,41 @@
+                            ***************
+                            * SCHIP games *
+                            ***************
+
+
+ALIEN   : A Space Invaders clone. Move with 9 and /. Shoot with 0.
+
+ANT     : A Mariobross clone... Move with 9 et /, jump with 0.
+
+BLINKY  : A PACMAN clone. Eat the gums in the maze. Avoid being eaten by the
+          enemies. Move with 2 4 6 and 8.
+
+CAR     : A car game. Move with 1 and 2.
+
+DRAGON1 : See DRAGON.DOC
+
+DRAGON2 : See DRAGON.DOC
+
+FIELD   : See FIELD.DOC
+
+JOUST   : See JOUST.DOC
+
+MINES   : See MINES.SRC in the sources directory
+
+PIPER   : A Pipe-mania clone. Move using 1 2 9 6. Place a pipe using 4 and 7.
+
+RACE    : A car game. Move with 1 and 2.
+
+SPACEFIG: See SPACEFIG.DOC
+
+SQUARE  : See SQUARE.DOC
+
+TEST    : A little program to show some basic functions of the super-chip
+          instructions. Not interesting.
+
+UBOAT   : See UBOAT.DOC
+
+WORM3   : Like SYZYGY, you're a snake. You have to eat the eggs which appear
+          a random locations on the screen. As you eat, you grow... Avoid
+          eating yourself or crashing on the extremities of the screen.
+          To turn 90ø left, press 2. Press 3 to turn 90ø right.
