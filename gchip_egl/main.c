@@ -25,7 +25,6 @@
 #include <GLES/gl.h>
 #include "cmdline.h"
 #include "chip8.h"
-#include "util.h"
 
 typedef struct egl_state {
     EGLDisplay disp;
@@ -38,6 +37,7 @@ typedef struct chip8_thread {
     pthread_t thread;           // handle to this thread
     int speed;                  // emulator speed (instructions/second)
     int running;                // control thread termination
+    uint8_t fb[256 * 192 * 4];
 } chip8_thread_t;
 
 typedef struct perf_thread {
@@ -46,6 +46,20 @@ typedef struct perf_thread {
     long cycles_per_second;     // current cycles/s count
     int running;                // control thread termination
 } perf_thread_t;
+
+// -----------------------------------------------------------------------------
+// Return the nearest square, pow2 texture dimension >= MAX(width, height).
+INLINE unsigned int tex_pow2(unsigned int width, unsigned int height)
+{
+    unsigned int input = MAX(width, height);
+    if (0 == (input & (input - 1)))
+        return input;
+
+    unsigned int value = 2;
+    while (0 != (input >>= 1))
+        value <<= 1;
+    return value;
+}
 
 // -----------------------------------------------------------------------------
 static int g_app_running = 1;
@@ -63,6 +77,20 @@ int handle_key_wait(void *data)
 // -----------------------------------------------------------------------------
 int handle_snd_ctrl(void *data, int enable)
 {
+    return 1;
+}
+
+// -----------------------------------------------------------------------------
+int handle_set_mode(void *data, int system)
+{
+    return 1;
+}
+
+// -----------------------------------------------------------------------------
+int handle_vid_sync(void *data)
+{
+    chip8_thread_t *ct = (chip8_thread_t *)data;
+    memcpy(ct->fb, ct->ctx->gfx, ct->ctx->gfx_size);
     return 1;
 }
 
@@ -91,6 +119,8 @@ chip8_thread_t *create_chip8_thread(c8_context_t *ctx, int speed)
     c8_handlers_t handlers;
     handlers.key_wait = handle_key_wait;
     handlers.snd_ctrl = handle_snd_ctrl;
+    handlers.set_mode = handle_set_mode;
+    handlers.vid_sync = handle_vid_sync;
     c8_set_handlers(ctx, &handlers, ct);
 
     // populate the rest of the thread structure
@@ -286,9 +316,8 @@ void render_loop(egl_state_t *g, chip8_thread_t *ct)
     ct->ctx->dirty = 1;
     while (g_app_running) {
 
-        if (ct->ctx->dirty) {
-            // copy the framebuffer into our texture
-            uint32_t *src32 = (uint32_t *)ct->ctx->gfx;
+        if (ct->ctx->system == SYSTEM_MCHIP) {
+            uint32_t *src32 = (uint32_t *)ct->fb;
             if (ct->ctx->system == SYSTEM_MCHIP) {
                 for (int y = 0; y < MCHIP_YRES; ++y) {
                     uint32_t *line = (uint32_t *)&tex[y * tex_dim * 4];
@@ -297,21 +326,20 @@ void render_loop(egl_state_t *g, chip8_thread_t *ct)
                     }
                 }
             }
-            else {
-                uint8_t *src = ct->ctx->gfx;
-                for (int y = 0; y < SCHIP_YRES; ++y) {
-                    uint32_t *line = (uint32_t *)&tex[y * tex_dim * 4];
-                    for (int x = 0; x < SCHIP_XRES; ++x) {
-                        line[x] = src[y * SCHIP_XRES + x] ? 0xFFFFFFFF : 0;
-                    }
+        }
+        else if (ct->ctx->dirty) {
+            // copy the framebuffer into our texture
+            ct->ctx->dirty = 0;
+            uint8_t *src = ct->ctx->gfx;
+            for (int y = 0; y < SCHIP_YRES; ++y) {
+                uint32_t *line = (uint32_t *)&tex[y * tex_dim * 4];
+                for (int x = 0; x < SCHIP_XRES; ++x) {
+                    line[x] = src[y * SCHIP_XRES + x] ? 0xFFFFFFFF : 0;
                 }
             }
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                    tex_dim, tex_dim, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
-
-            ct->ctx->dirty = 0;
         }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_dim, tex_dim, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();

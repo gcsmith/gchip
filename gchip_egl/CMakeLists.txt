@@ -16,11 +16,9 @@ include_directories(
 add_definitions(${OPENGLES_DEFINITIONS})
 
 set(gchip_egl_hdr
-    ../gchip_sdl/cmdline.h
 )
 
 set(gchip_egl_src
-    ../gchip_sdl/cmdline.c
     main.c
 )
 
@@ -32,13 +30,13 @@ set(gchip_egl_lib
 if(WIN32)
     # use gnulib for windows portability
     list(APPEND gchip_egl_hdr
-        ../gnulib/getopt.h
-        ../gnulib/getopt_int.h
-        ../gnulib/gettext.h
+        ${GNULIB_DIR}/getopt.h
+        ${GNULIB_DIR}/getopt_int.h
+        ${GNULIB_DIR}/gettext.h
     )
     list(APPEND gchip_egl_src
-        ../gnulib/getopt.c
-        ../gnulib/getopt1.c
+        ${GNULIB_DIR}/getopt.c
+        ${GNULIB_DIR}/getopt1.c
     )
     include_directories("${CMAKE_SOURCE_DIR}/gnulib")
 
