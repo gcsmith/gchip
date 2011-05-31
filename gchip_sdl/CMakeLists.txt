@@ -23,7 +23,6 @@ add_definitions(
 set(gchip_sdl_hdr
     audio.h
     graphics.h
-    util.h
 )
 
 set(gchip_sdl_src
