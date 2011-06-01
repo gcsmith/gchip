@@ -19,6 +19,7 @@
 #define GCHIP_COMMON__H
 
 #include <stddef.h>
+#include <stdio.h>
 #include "config.h"
 
 #define SAFE_FREE(x) if (NULL != x) { free(x); x = NULL; }

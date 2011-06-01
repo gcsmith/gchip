@@ -38,20 +38,6 @@ set(gchip_sdl_lib
     gchip
 )
 
-if(WIN32)
-    # use gnulib for windows portability
-    list(APPEND gchip_sdl_hdr
-        ${GNULIB_DIR}/getopt.h
-        ${GNULIB_DIR}/getopt_int.h
-        ${GNULIB_DIR}/gettext.h
-    )
-    list(APPEND gchip_sdl_src
-        ${GNULIB_DIR}/getopt.c
-        ${GNULIB_DIR}/getopt1.c
-    )
-    include_directories(${GNULIB_DIR})
-endif()
-
 add_executable(gchip_sdl ${MKPROP} ${gchip_sdl_src} ${gchip_sdl_hdr})
 target_link_libraries(gchip_sdl ${gchip_sdl_lib})
 

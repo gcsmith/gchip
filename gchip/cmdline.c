@@ -27,7 +27,7 @@
 #define CMDLINE_BGCOLOR 0x1001
 #define CMDLINE_FGCOLOR 0x1002
 
-const char *gchip_desc  = "gchip - a portabl chip8 emulator";
+const char *gchip_desc  = "gchip - a portable chip8 emulator";
 const char *gchip_usage = "usage: gchip [options] [file]";
 const char *gchip_ver   = "0.1-dev";
 

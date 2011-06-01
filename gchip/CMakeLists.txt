@@ -20,6 +20,20 @@ set(gchip_src
     interp.c
 )
 
+if(WIN32)
+    # use gnulib for windows portability
+    list(APPEND gchip_hdr
+        ${GNULIB_DIR}/getopt.h
+        ${GNULIB_DIR}/getopt_int.h
+        ${GNULIB_DIR}/gettext.h
+    )
+    list(APPEND gchip_src
+        ${GNULIB_DIR}/getopt.c
+        ${GNULIB_DIR}/getopt1.c
+    )
+    include_directories(${GNULIB_DIR})
+endif()
+
 if(HAVE_RECOMPILER)
     list(APPEND gchip_src xlat.c)
     if(ARCH_X86 OR ARCH_X86_64)

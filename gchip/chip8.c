@@ -132,7 +132,7 @@ int c8_load_file(c8_context_t *ctx, const char *path)
 #ifdef HAVE_MCHIP_SUPPORT
         log_info("Exceeded standard ROM size, assuming MegaChip.\n");
         ctx->rom_size = length + 0x200;
-        ctx->rom = low_realloc(ctx->rom, ctx->rom_size);
+        ctx->rom = (uint8_t *)low_realloc(ctx->rom, ctx->rom_size);
 #else
         log_err("ROM size exceeds size of program address space.\n");
         fclose(fp);
@@ -177,7 +177,7 @@ void c8_set_system(c8_context_t *ctx, int system)
         if (ctx->gfx_size < MCHIP_XRES * MCHIP_YRES * 4) {
             log_dbg("Allocating new framebuffer for MegaChip mode.\n");
             ctx->gfx_size = MCHIP_XRES * MCHIP_YRES * 4;
-            ctx->gfx = low_realloc(ctx->gfx, ctx->gfx_size);
+            ctx->gfx = (uint8_t *)low_realloc(ctx->gfx, ctx->gfx_size);
         }
         break;
 #endif
