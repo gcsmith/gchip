@@ -118,6 +118,7 @@ int cmdline_parse(int argc, char *argv[], cmdargs_t *args)
         { "version",    no_argument,        NULL, CMDLINE_VERSION },
         { NULL,         no_argument,        NULL, 0 }
     };
+    int opt, index = 0, scale = 1;
 
     // set some reasonable defaults
     args->debugger = 0;
@@ -130,7 +131,6 @@ int cmdline_parse(int argc, char *argv[], cmdargs_t *args)
     args->rompath = NULL;
     args->mode = MODE_CASE;
 
-    int opt, index = 0, scale = 1;
     while (-1 != (opt = getopt_long(argc, argv, s_opts, l_opts, &index))) {
         switch (opt) {
         case 'd':

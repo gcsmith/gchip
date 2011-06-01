@@ -115,32 +115,37 @@ void c8_destroy_context(c8_context_t *ctx)
 // -----------------------------------------------------------------------------
 int c8_load_file(c8_context_t *ctx, const char *path)
 {
+    FILE *fp;
+    size_t length, bytes_read;
+
     assert(NULL != ctx);
     assert(NULL != path);
 
     // attempt to open the specified rom path
-    FILE *fp = fopen(path, "rb");
-    if (!fp) return -1;
+    if (NULL == (fp = fopen(path, "rb")))
+        return -1;
 
     // determine the file length
     fseek(fp, 0, SEEK_END);
-    size_t length = ftell(fp);
+    length = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
     log_info("Loading %ld byte rom \"%s\"...\n", length, path);
     if (length > ctx->rom_size) {
 #ifdef HAVE_MCHIP_SUPPORT
+        // MegaChip programs can use 24-bit addressing with I
         log_info("Exceeded standard ROM size, assuming MegaChip.\n");
         ctx->rom_size = length + 0x200;
         ctx->rom = (uint8_t *)low_realloc(ctx->rom, ctx->rom_size);
 #else
+        // if not MegaChip, there should be no reason for a ROM of this size
         log_err("ROM size exceeds size of program address space.\n");
         fclose(fp);
         return -1;
 #endif
     }
 
-    int bytes_read = fread((char *)(ctx->rom + 0x200), 1, length, fp);
+    bytes_read = fread((char *)(ctx->rom + 0x200), 1, length, fp);
     fclose(fp);
 
     return (length == bytes_read) ? 0 : -1;
@@ -183,7 +188,7 @@ void c8_set_system(c8_context_t *ctx, int system)
 #endif
     }
 
-    // ctx->set_mode(ctx, ctx->system);
+    ctx->fn.set_mode(ctx, ctx->system);
 }
 
 // -----------------------------------------------------------------------------
@@ -279,13 +284,16 @@ void c8_update_counters(c8_context_t *ctx, int delta)
 // Draw an 8xN or 8x16 sprite in CHIP8 mode.
 int gfx_draw_chip8_sprite(c8_context_t *ctx, int x, int y, int n)
 {
-    int collision = 0, i = ctx->i, y_pos, offset;
-    if (!n) n = 16; // handle the special case: 8x16 sprite
-    for (int j = 0; j < n; ++j) {
+    int j, b, collision = 0, i = ctx->i;
+
+    // handle the special case: when N==0, draw 8x16 sprite
+    if (!n) n = 16;
+
+    for (j = 0; j < n; ++j) {
         uint8_t data = ctx->rom[i++];
-        y_pos = ((y + j) & 0x1F) << 8;
-        for (int b = 0; b < 8; ++b) {
-            offset = y_pos + (((x + b) & 0x3F) << 1);
+        int y_pos = ((y + j) & 0x1F) << 8;
+        for (b = 0; b < 8; ++b) {
+            int offset = y_pos + (((x + b) & 0x3F) << 1);
             assert(offset < ctx->gfx_size);
             if (data & 0x80) {
                 ctx->gfx[offset] ^= 1;
@@ -305,13 +313,16 @@ int gfx_draw_chip8_sprite(c8_context_t *ctx, int x, int y, int n)
 // Draw an 8xN or 8x16 sprite in HCHIP (HiRes) mode.
 int gfx_draw_hchip_sprite(c8_context_t *ctx, int x, int y, int n)
 {
-    int collision = 0, i = ctx->i, y_pos, offset;
-    if (!n) n = 16; // handle the special case: 8x16 sprite
-    for (int j = 0; j < n; ++j) {
+    int j, b, collision = 0, i = ctx->i;
+
+    // handle the special case: when N==0, draw 8x16 sprite
+    if (!n) n = 16;
+
+    for (j = 0; j < n; ++j) {
         uint8_t data = ctx->rom[i++];
-        y_pos = ((y + j) & 0x3F) << 7;
-        for (int b = 0; b < 8; ++b) {
-            offset = y_pos + (((x + b) & 0x3F) << 1);
+        int y_pos = ((y + j) & 0x3F) << 7;
+        for (b = 0; b < 8; ++b) {
+            int offset = y_pos + (((x + b) & 0x3F) << 1);
             assert(offset < ctx->gfx_size);
             if (data & 0x80) {
                 ctx->gfx[offset] ^= 1;
@@ -330,12 +341,13 @@ int gfx_draw_hchip_sprite(c8_context_t *ctx, int x, int y, int n)
 // Draw an 8xN or 16x16 sprite in SCHIP (SuperChip) mode.
 int gfx_draw_schip_sprite(c8_context_t *ctx, int x, int y, int n)
 {
-    int collision = 0, i = ctx->i;
+    int j, b, collision = 0, i = ctx->i;
+
     if (n > 0) {
-        for (int j = 0; j < n; ++j) {
+        for (j = 0; j < n; ++j) {
             uint8_t data = ctx->rom[i++];
             int y_pos = ((y + j) & 0x3F) << 7;
-            for (int b = 0; b < 8; ++b) {
+            for (b = 0; b < 8; ++b) {
                 int offset = y_pos + ((x + b) & 0x7F);
                 assert(offset < ctx->gfx_size);
                 if (data & 0x80) {
@@ -347,10 +359,10 @@ int gfx_draw_schip_sprite(c8_context_t *ctx, int x, int y, int n)
         }
     }
     else {
-        for (int j = 0; j < 16; ++j) {
+        for (j = 0; j < 16; ++j) {
             uint16_t data = (ctx->rom[i] << 8) | ctx->rom[i + 1]; i += 2;
             int y_pos = ((y + j) & 0x3F) << 7;
-            for (int b = 0; b < 16; ++b) {
+            for (b = 0; b < 16; ++b) {
                 int offset = y_pos + ((x + b) & 0x7F);
                 assert(offset < ctx->gfx_size);
                 if (data & 0x8000) {
@@ -369,7 +381,9 @@ int gfx_draw_schip_sprite(c8_context_t *ctx, int x, int y, int n)
 void gfx_scroll_down(c8_context_t *ctx, int lines)
 {
     const int w = SCHIP_XRES, h = SCHIP_YRES;
-    for (int i = h - 1; i >= lines; --i) {
+    int i;
+
+    for (i = h - 1; i >= lines; --i) {
         memcpy(&ctx->gfx[i * w], &ctx->gfx[(i - lines) * w], w);
     }
     memset(&ctx->gfx[0], 0, lines * w);
@@ -381,7 +395,9 @@ void gfx_scroll_down(c8_context_t *ctx, int lines)
 void gfx_scroll_right(c8_context_t *ctx)
 {
     const int w = SCHIP_XRES, h = SCHIP_YRES;
-    for (int y = 0; y < h; ++y) {
+    int y;
+
+    for (y = 0; y < h; ++y) {
         uint8_t *line = &ctx->gfx[y * w];
         memmove(&line[4], &line[0], w - 4);
         memset(&line[0], 0, 4);
@@ -394,7 +410,9 @@ void gfx_scroll_right(c8_context_t *ctx)
 void gfx_scroll_left(c8_context_t *ctx)
 {
     const int w = SCHIP_XRES, h = SCHIP_YRES;
-    for (int y = 0; y < h; ++y) {
+    int y;
+
+    for (y = 0; y < h; ++y) {
         uint8_t *line = &ctx->gfx[y * w];
         memmove(&line[0], &line[4], w - 4);
         memset(&line[w - 4], 0, 4);
@@ -408,14 +426,15 @@ void gfx_scroll_left(c8_context_t *ctx)
 // Draw an SprWidth x SprHeight sprite in MCHIP (MegaChip) mode.
 int gfx_draw_mchip_sprite(c8_context_t *ctx, int x, int y, int n)
 {
-    int collision = 0, i = ctx->i, offset, cindex;
+    int j, b, collision = 0, i = ctx->i;
     uint32_t *gfx = (uint32_t *)ctx->gfx;
-    for (int j = 0; j < ctx->spr_height; ++j) {
+
+    for (j = 0; j < ctx->spr_height; ++j) {
         int y_pos = ((y + j) % MCHIP_YRES) * MCHIP_XRES;
-        for (int b = 0; b < ctx->spr_width; ++b) {
-            cindex = ctx->rom[i++];
+        for (b = 0; b < ctx->spr_width; ++b) {
+            int cindex = ctx->rom[i++];
             if (cindex) {
-                offset = y_pos + ((x + b) % MCHIP_XRES);
+                int offset = y_pos + ((x + b) % MCHIP_XRES);
                 if (gfx[offset] > 0) collision = 1;
                 gfx[offset] = ctx->palette[cindex];
             }
@@ -429,7 +448,9 @@ int gfx_draw_mchip_sprite(c8_context_t *ctx, int x, int y, int n)
 void gfx_scroll_up(c8_context_t *ctx, int lines)
 {
     const int w = SCHIP_XRES, h = SCHIP_YRES;
-    for (int i = 0; i < (h - lines); ++i) {
+    int i;
+
+    for (i = 0; i < (h - lines); ++i) {
         memcpy(&ctx->gfx[i * w], &ctx->gfx[(i + lines) * w], w);
     }
     memset(&ctx->gfx[(h - lines) * w], 0, lines * w);
@@ -441,6 +462,7 @@ void gfx_scroll_up(c8_context_t *ctx, int lines)
 int gfx_draw_sprite(c8_context_t *ctx, int rx, int ry, int n)
 {
     int collision, x = ctx->v[rx], y = ctx->v[ry];
+
     switch (ctx->system) {
     default:
         assert(!"invalid system specified in gfx_draw_sprite");

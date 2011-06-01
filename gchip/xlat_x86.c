@@ -859,15 +859,17 @@ void xlat_emit_mul_r8(xlat_block_t *xb, int rs)
 // -----------------------------------------------------------------------------
 int xlat_alloc_state(xlat_state_t *xs)
 {
+    int i;
+
     // allocate and populate host register list
     xs->num_free = HOST_REGS;
     xs->free_regs = (int *)malloc(sizeof(int) * HOST_REGS);
 
-    for (int i = 0; i < HOST_REGS; ++i)
+    for (i = 0; i < HOST_REGS; ++i)
         xs->free_regs[i] = i;
 
     // set all guest register mappings to unreserved state
-    for (int i = 0; i < GUEST_REGS; ++i)
+    for (i = 0; i < GUEST_REGS; ++i)
         xs->reg_map[i] = -1;
 
     return 0;
@@ -957,7 +959,8 @@ int xlat_reserve_register_temp(xlat_state_t *xs, int bits)
 // -----------------------------------------------------------------------------
 int xlat_reserve_register_index(xlat_state_t *xs, int bits, int index)
 {
-    for (int i = 0; i < GUEST_REGS; i++) {
+    int i;
+    for (i = 0; i < GUEST_REGS; i++) {
         if (xs->reg_map[i] == index) {
             log_spew("ejecting register index %d (%d)\n", index, i);
             xlat_free_register(xs, i);
@@ -1024,8 +1027,10 @@ void xlat_emit_prologue(xlat_state_t *state)
 // -----------------------------------------------------------------------------
 void xlat_emit_epilogue(xlat_state_t *state)
 {
+    int i;
+
     // commit updated registers to the emulator context
-    for (int i = 0; i < GUEST_REGS; ++i)
+    for (i = 0; i < GUEST_REGS; ++i)
         if (state->reg_map[i] >= 0)
             xlat_free_register(state, i);
 

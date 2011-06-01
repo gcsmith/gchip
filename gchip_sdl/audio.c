@@ -34,12 +34,15 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
 // -----------------------------------------------------------------------------
 void audio_init(audio_data_t *audio)
 {
+    int i;
+    float wave;
+
     audio->buffer = (uint8_t *)malloc(2 * num_samples);
     audio->pos = 0;
     audio->len = num_samples;
 
-    for (int i = 0; i < num_samples; i++) {
-        float wave = sin(i * 2.0 * freq * M_PI / num_samples);
+    for (i = 0; i < num_samples; i++) {
+        wave = sin(i * 2.0 * freq * M_PI / num_samples);
         audio->buffer[i] = (uint8_t)(127 * wave);
     }
 

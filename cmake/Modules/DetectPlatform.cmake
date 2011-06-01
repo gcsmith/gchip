@@ -21,7 +21,6 @@ elseif(UNIX)
         -DPLATFORM_UNIX
         -D_GNU_SOURCE
         -Wall -Werror
-        -std=c99
     )
 else()
     message(FATAL_ERROR "Unsupported platform detected")

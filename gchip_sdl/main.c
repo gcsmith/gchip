@@ -98,7 +98,8 @@ int handle_vid_sync(void *data)
 // -----------------------------------------------------------------------------
 void init_key_mappings(int *key)
 {
-    for (int i = 0; i < 256; i++) key[i] = -1;
+    int i;
+    for (i = 0; i < 256; i++) key[i] = -1;
     key[SDLK_1] = 0x1; key[SDLK_2] = 0x2; key[SDLK_3] = 0x3; key[SDLK_4] = 0xC;
     key[SDLK_q] = 0x4; key[SDLK_w] = 0x5; key[SDLK_e] = 0x6; key[SDLK_r] = 0xD;
     key[SDLK_a] = 0x7; key[SDLK_s] = 0x8; key[SDLK_d] = 0x9; key[SDLK_f] = 0xE;

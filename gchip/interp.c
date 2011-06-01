@@ -372,8 +372,8 @@ static void FASTCALL op_meg_ldpal(c8_context_t *ctx)
 
 #ifdef HAVE_MCHIP_SUPPORT
     // in megachip-8 mode, this is a load palette instruction
-    int palette_size = OP_B, addr = ctx->i;
-    for (int i = 1; i <= palette_size; ++i) {
+    int i, palette_size = OP_B, addr = ctx->i;
+    for (i = 1; i <= palette_size; ++i) {
         uint32_t c = *(uint32_t *)&ctx->rom[addr];
         int b = (c >> 24) & 0xFF;
         int g = (c >> 16) & 0xFF;
@@ -463,13 +463,15 @@ static void FASTCALL op_mem(c8_context_t *ctx)
 // -----------------------------------------------------------------------------
 void init_dispatch_tables(void)
 {
-    // sys_tab and key_tab are global, so only perform initialization once
     static int first_time_init = 1;
+    int i;
+
+    // sys_tab and key_tab are global, so only perform initialization once
     if (!first_time_init)
         return;
 
     // populate the dispatch tables with opcode handlers
-    for (int i = 0; i < 0x100; i++)
+    for (i = 0; i < 0x100; i++)
         sys_tab[i] = key_tab[i] = mem_tab[i] = op_bad;
 
     sys_tab[0xE0] = op_sys_cls;
@@ -487,7 +489,7 @@ void init_dispatch_tables(void)
     mem_tab[0x65] = op_mem_rd;
 
 #ifdef HAVE_SCHIP_SUPPORT
-    for (int i = 0; i < 0x10; ++i)
+    for (i = 0; i < 0x10; ++i)
         sys_tab[0xC0 | i] = op_sup_scd;
     sys_tab[0xFB] = op_sup_scr;
     sys_tab[0xFC] = op_sup_scl;
@@ -500,7 +502,7 @@ void init_dispatch_tables(void)
 #endif
 
 #ifdef HAVE_MCHIP_SUPPORT
-    for (int i = 0; i < 0x10; ++i)
+    for (i = 0; i < 0x10; ++i)
         sys_tab[0xB0 | i] = op_meg_scru;
     sys_tab[0x10] = op_meg_off;
     sys_tab[0x11] = op_meg_on;
@@ -569,9 +571,10 @@ long c8_execute_cycles_cache(c8_context_t *ctx, long cycles)
 {
     opcode_fn cache[ROM_SIZE];
     uint16_t opcodes[ROM_SIZE], pc;
+    int i;
 
     check_for_hires(ctx);
-    for (int i = 0; i < ROM_SIZE; ++i) {
+    for (i = 0; i < ROM_SIZE; ++i) {
         opcodes[i] = (ctx->rom[i] << 8) | ctx->rom[i + 1];
         switch (opcodes[i] >> 12) {
         case 0x0: cache[i] = sys_tab[opcodes[i] & 0xFF]; break;

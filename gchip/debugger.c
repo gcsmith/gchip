@@ -91,6 +91,7 @@ void c8_debug_disassemble(const c8_context_t *ctx, char *o, int s)
 int c8_debug_instruction(const c8_context_t *ctx, uint16_t pc)
 {
     char buffer[64];
+    int i;
 
     if (ctx->exec_flags & EXEC_DEBUG) {
         // print out the program counter, opcode, and disassembled instruction
@@ -98,7 +99,7 @@ int c8_debug_instruction(const c8_context_t *ctx, uint16_t pc)
         log_dbg("%03X  %04X  %-14s  ", pc, ctx->opcode, buffer);
 
         // print out a dump of the system registers
-        for (int i = 0; i < 16; ++i)
+        for (i = 0; i < 16; ++i)
             log_dbg("%02X ", ctx->v[i]);
         log_dbg("%04X %04X %02X %02X\n", ctx->sp, ctx->i, ctx->dt, ctx->st);
     }
@@ -131,11 +132,12 @@ int c8_debug_lockstep_test(const char *path)
     for (;;) {
         // need to guarantee identical execution of RND instruction
         unsigned int random_seed = (unsigned int)time(NULL);
+        long num_cycles;
 
         // execute binary translator, check number of effective cycles executed
         xlat->cycles = 0;
         srand(random_seed);
-        long num_cycles = c8_execute_cycles(xlat, 1);
+        num_cycles = c8_execute_cycles(xlat, 1);
 
         // execute same number of cycles in interpreter
         intp->cycles = 0;
@@ -163,7 +165,7 @@ int c8_debug_lockstep_test(const char *path)
 // -----------------------------------------------------------------------------
 int c8_debug_cmp_context(const c8_context_t *a, const c8_context_t *b)
 {
-    int mismatch = 0;
+    int i, mismatch = 0;
 
     // compare special purpose registers
     if (a->pc != b->pc) {
@@ -188,7 +190,7 @@ int c8_debug_cmp_context(const c8_context_t *a, const c8_context_t *b)
     }
 
     // compare general purpose registers
-    for (int i = 0; i < 16; ++i) {
+    for (i = 0; i < 16; ++i) {
         if (a->v[i] == b->v[i])
             continue;
         log_dbg("V%X mismatch (A=%02X B=%02X)\n", i, a->v[i], b->v[i]);
@@ -196,7 +198,7 @@ int c8_debug_cmp_context(const c8_context_t *a, const c8_context_t *b)
     }
 
     // compare stack
-    for (int i = 0; i < STACK_SIZE; ++i) {
+    for (i = 0; i < STACK_SIZE; ++i) {
         if (a->stack[i] == b->stack[i])
             continue;
         log_dbg("STACK[%d] mismatch (A=%04X B=%04X)\n",
@@ -210,19 +212,20 @@ int c8_debug_cmp_context(const c8_context_t *a, const c8_context_t *b)
 // -----------------------------------------------------------------------------
 void c8_debug_dump_context(const c8_context_t *ctx)
 {
+    int i;
     log_dbg("PC=%04X  SP=%04X  I=%04X  DT=%02X  ST=%02X\n",
             ctx->pc, ctx->sp, ctx->i, ctx->dt, ctx->st);
 
-    for (int i = 0; i < 8; ++i)
+    for (i = 0; i < 8; ++i)
         log_dbg("V%X=%02X  ", i, ctx->v[i]);
     log_dbg("\n");
 
-    for (int i = 8; i < 16; i++)
+    for (i = 8; i < 16; i++)
         log_dbg("V%X=%02X  ", i, ctx->v[i]);
     log_dbg("\n");
 
 #ifdef HAVE_SCHIP_SUPPORT
-    for (int i = 0; i < 8; i++)
+    for (i = 0; i < 8; i++)
         log_dbg("H%X=%02X  ", i, ctx->hp[i]);
     log_dbg("\n");
 #endif // HAVE_SCHIP_SUPPORT

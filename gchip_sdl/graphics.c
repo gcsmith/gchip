@@ -68,6 +68,8 @@ void graphics_init(graphics_t *gfx, int width, int height, int bg, int fg)
 // -----------------------------------------------------------------------------
 void graphics_update(graphics_t *gfx, uint8_t *src, int system)
 {
+    int x, y;
+
     // lock the pbo for write only access
     glBufferData(GL_PIXEL_UNPACK_BUFFER, gfx->pbo_sz, NULL, GL_DYNAMIC_DRAW);
     void *pbuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
@@ -76,17 +78,17 @@ void graphics_update(graphics_t *gfx, uint8_t *src, int system)
     uint8_t *surf = (uint8_t *)pbuffer;
     if (system == SYSTEM_MCHIP) {
         uint32_t *src32 = (uint32_t *)src;
-        for (int y = 0; y < MCHIP_YRES; ++y) {
+        for (y = 0; y < MCHIP_YRES; ++y) {
             uint32_t *line = (uint32_t *)&surf[y * gfx->texture_dim * 4];
-            for (int x = 0; x < MCHIP_XRES; ++x) {
+            for (x = 0; x < MCHIP_XRES; ++x) {
                 line[x] = src32[y * MCHIP_XRES + x];
             }
         }
     }
     else {
-        for (int y = 0; y < SCHIP_YRES; ++y) {
+        for (y = 0; y < SCHIP_YRES; ++y) {
             uint32_t *line = (uint32_t *)&surf[y * gfx->texture_dim * 4];
-            for (int x = 0; x < SCHIP_XRES; ++x) {
+            for (x = 0; x < SCHIP_XRES; ++x) {
                 line[x] = src[y * SCHIP_XRES + x] ? gfx->fg : gfx->bg;
             }
         }
