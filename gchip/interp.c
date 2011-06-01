@@ -372,15 +372,17 @@ static void FASTCALL op_meg_ldpal(c8_context_t *ctx)
 
 #ifdef HAVE_MCHIP_SUPPORT
     // in megachip-8 mode, this is a load palette instruction
-    int i, palette_size = OP_B, addr = ctx->i;
-    for (i = 1; i <= palette_size; ++i) {
-        uint32_t c = *(uint32_t *)&ctx->rom[addr];
-        int b = (c >> 24) & 0xFF;
-        int g = (c >> 16) & 0xFF;
-        int r = (c >> 8) & 0xFF;
-        int a = c & 0xFF;
-        ctx->palette[i] = (a << 24) | (b << 16) | (g << 8) | r;
-        addr += 4;
+    if (ctx->system == SYSTEM_MCHIP) {
+        int i, palette_size = OP_B, addr = ctx->i;
+        for (i = 1; i <= palette_size; ++i) {
+            uint32_t c = *(uint32_t *)&ctx->rom[addr];
+            int b = (c >> 24) & 0xFF;
+            int g = (c >> 16) & 0xFF;
+            int r = (c >> 8) & 0xFF;
+            int a = c & 0xFF;
+            ctx->palette[i] = (a << 24) | (b << 16) | (g << 8) | r;
+            addr += 4;
+        }
     }
 #endif
 }

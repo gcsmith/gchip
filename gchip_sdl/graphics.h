@@ -37,10 +37,11 @@ void graphics_render(graphics_t *gfx, int system);
 INLINE unsigned int tex_pow2(unsigned int width, unsigned int height)
 {
     unsigned int input = MAX(width, height);
+    unsigned int value = 2;
+
     if (0 == (input & (input - 1)))
         return input;
 
-    unsigned int value = 2;
     while (0 != (input >>= 1))
         value <<= 1;
     return value;

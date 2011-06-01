@@ -111,14 +111,14 @@ void init_key_mappings(int *key)
 // 
 int run_chip8_thread(void *data)
 {
+    chip8_thread_t *ct = (chip8_thread_t *)data;
+    int cycles_per_tick = (int)(0.5 + ct->speed / (1000.0 / 16.0));
+
     // perform audio initialization
     audio_data_t audio;
     audio_init(&audio);
 
-    // begin execution
-    chip8_thread_t *ct = (chip8_thread_t *)data;
-    int cycles_per_tick = (int)(0.5 + ct->speed / (1000.0 / 16.0));
-
+    // execute instructions until the thread is terminated
     while (ct->running) {
         c8_execute_cycles(ct->ctx, cycles_per_tick);
         c8_update_counters(ct->ctx, 1);
@@ -133,12 +133,14 @@ int run_chip8_thread(void *data)
 // -----------------------------------------------------------------------------
 chip8_thread_t *create_chip8_thread(c8_context_t *ctx, int speed)
 {
+    c8_handlers_t handlers;
+    chip8_thread_t *ct;
+
     // create and initialize the emulator thread structure
-    chip8_thread_t *ct = (chip8_thread_t *)calloc(1, sizeof(chip8_thread_t));
+    ct = (chip8_thread_t *)calloc(1, sizeof(chip8_thread_t));
     init_key_mappings(ct->keymap);
 
     // install the event handlers so we get feedback from the emulator
-    c8_handlers_t handlers;
     handlers.key_wait = handle_key_wait;
     handlers.snd_ctrl = handle_snd_ctrl;
     handlers.set_mode = handle_set_mode;
@@ -188,7 +190,7 @@ void destroy_chip8_thread(chip8_thread_t *ct)
 int run_perf_thread(void *data)
 {
     perf_thread_t *pt = (perf_thread_t *)data;
-    int prev_cycles = pt->ctx->cycles;
+    int curr_cycles, prev_cycles = pt->ctx->cycles;
 
     for (;;) {
         SDL_LockMutex(pt->perf_lock);
@@ -196,7 +198,7 @@ int run_perf_thread(void *data)
         if (!pt->running)
             break;
 
-        int curr_cycles = pt->ctx->cycles;
+        curr_cycles = pt->ctx->cycles;
         log_info("cyles per second: %d\n", curr_cycles - prev_cycles);
         prev_cycles = curr_cycles;
     }
@@ -240,34 +242,35 @@ void destroy_perf_thread(perf_thread_t *pt)
 // -----------------------------------------------------------------------------
 void print_version_info(void)
 {
+    const char *version;
+    int major = 0, minor = 0;
+    SDL_version cv, lv;
+
     // SDL compiled and linked versions
-    SDL_version cv;
     SDL_VERSION(&cv);
     log_info("SDL compiled version: %d.%d.%d\n", cv.major, cv.minor, cv.patch);
 
-    SDL_version lv;
     SDL_GetVersion(&lv);
     log_info("SDL linked version: %d.%d.%d\n", lv.major, lv.minor, lv.patch);
 
     // OpenGL context and driver versions
-    int major = 0, minor = 0;
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
     log_info("GL context version: %d.%d\n", major, minor);
 
 #ifdef GL_VERSION
-    const char *gl_ver = (const char *)glGetString(GL_VERSION);
-    log_info("GL driver version: %s\n", gl_ver);
+    version = (const char *)glGetString(GL_VERSION);
+    log_info("GL driver version: %s\n", version);
 #endif
 
 #ifdef GL_SHADING_LANGUAGE_VERSION
-    const char *sl_ver = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
-    log_info("GLSL driver version: %s\n", sl_ver);
+    version = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
+    log_info("GLSL driver version: %s\n", version);
 #endif
 
 #ifdef GLEW_VERSION
-    const char *glew_ver = (const char *)glewGetString(GLEW_VERSION);
-    log_info("GLEW version: %s\n", glew_ver);
+    version = (const char *)glewGetString(GLEW_VERSION);
+    log_info("GLEW version: %s\n", version);
 #endif
 }
 
@@ -276,6 +279,9 @@ void print_version_info(void)
 //
 int create_window(SDL_Window **window, SDL_GLContext *context, cmdargs_t *ca)
 {
+    int flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+    GLenum rc;
+
     assert(NULL != window);
     assert(NULL != context);
     assert(NULL != ca);
@@ -292,7 +298,6 @@ int create_window(SDL_Window **window, SDL_GLContext *context, cmdargs_t *ca)
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    int flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
     if (ca->fullscreen)
         flags |= SDL_WINDOW_FULLSCREEN;
 
@@ -313,8 +318,7 @@ int create_window(SDL_Window **window, SDL_GLContext *context, cmdargs_t *ca)
     }
 
     log_info("Initializing GLEW...\n");
-    GLenum rc = glewInit();
-    if (GLEW_OK != rc) {
+    if (GLEW_OK != (rc = glewInit())) {
         log_err("failed to initialize GLEW (%s)\n", glewGetErrorString(rc));
         return -1;
     }
@@ -388,10 +392,11 @@ int process_window_events(chip8_thread_t *ct, window_state_t *ws)
 int window_event_pump(chip8_thread_t *ct, window_state_t *ws)
 {
     graphics_t gfx;
-    graphics_init(&gfx, ws->width, ws->height, ws->bgcolor, ws->fgcolor);
-
     c8_context_t *ctx = ct->ctx;
+
+    graphics_init(&gfx, ws->width, ws->height, ws->bgcolor, ws->fgcolor);
     ctx->dirty = 1;
+
     while (process_window_events(ct, ws)) {
         // only update the destination surface when the display has changed
 
@@ -422,6 +427,11 @@ void exit_cleanup(void)
 int main(int argc, char *argv[])
 {
     cmdargs_t *ca = &g_ca;
+    c8_context_t *ctx;
+    chip8_thread_t *ct;
+    perf_thread_t *pt;
+    window_state_t ws;
+
     atexit(exit_cleanup);
 
     // process the command line arguments and check for validity
@@ -435,7 +445,6 @@ int main(int argc, char *argv[])
     }
 
     // create the emulator context and load the specified rom file
-    c8_context_t *ctx;
     c8_create_context(&ctx, ca->mode);
     if (0 > c8_load_file(ctx, ca->rompath)) {
         log_err("failed to load rom \"%s\"\n", ca->rompath);
@@ -445,19 +454,14 @@ int main(int argc, char *argv[])
     c8_set_debugger_enabled(ctx, ca->debugger);
 
     // create and display the application window
-    SDL_Window *window;
-    SDL_GLContext glcontext;
-    if (0 > create_window(&window, &glcontext, ca))
+    if (0 > create_window(&ws.window, &ws.glcontext, ca))
         return 1;
 
     // create the emulator and performance monitoring threads
-    chip8_thread_t *ct = create_chip8_thread(ctx, ca->speed);
-    perf_thread_t *pt = create_perf_thread(ctx);
+    ct = create_chip8_thread(ctx, ca->speed);
+    pt = create_perf_thread(ctx);
 
     // begin processing of window events
-    window_state_t ws;
-    ws.window     = window;
-    ws.glcontext  = glcontext;
     ws.fullscreen = ca->fullscreen;
     ws.bgcolor    = ca->bgcolor;
     ws.fgcolor    = ca->fgcolor;

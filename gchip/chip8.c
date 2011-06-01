@@ -345,8 +345,8 @@ int gfx_draw_schip_sprite(c8_context_t *ctx, int x, int y, int n)
 
     if (n > 0) {
         for (j = 0; j < n; ++j) {
-            uint8_t data = ctx->rom[i++];
             int y_pos = ((y + j) & 0x3F) << 7;
+            uint8_t data = ctx->rom[i++];
             for (b = 0; b < 8; ++b) {
                 int offset = y_pos + ((x + b) & 0x7F);
                 assert(offset < ctx->gfx_size);
@@ -360,8 +360,9 @@ int gfx_draw_schip_sprite(c8_context_t *ctx, int x, int y, int n)
     }
     else {
         for (j = 0; j < 16; ++j) {
-            uint16_t data = (ctx->rom[i] << 8) | ctx->rom[i + 1]; i += 2;
             int y_pos = ((y + j) & 0x3F) << 7;
+            uint16_t data = (ctx->rom[i] << 8) | ctx->rom[i + 1];
+            i += 2;
             for (b = 0; b < 16; ++b) {
                 int offset = y_pos + ((x + b) & 0x7F);
                 assert(offset < ctx->gfx_size);

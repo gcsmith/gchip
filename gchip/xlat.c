@@ -426,12 +426,12 @@ static int xlat_mem_bcd(xlat_state_t *xs)
 // -----------------------------------------------------------------------------
 static int xlat_mem_wr(xlat_state_t *xs)
 {
+    int x, end = O_X;
     int r0 = xlat_reserve_register_index(xs, 32, 0);
     int ri = xlat_reserve_register(xs, 16, R_I, &xs->ctx->i);
     xlat_emit_mov_i64r64(xs->xb, (uint64_t)xs->ctx->rom, r0);
     xlat_emit_add_r64r64(xs->xb, ri, r0);
 
-    int x, end = O_X;
     for (x = 0; x <= end; ++x) {
         int rx = xlat_reserve_register(xs, 8, x, &xs->ctx->v[x]); // RO?
         xlat_emit_mov_r8rm(xs->xb, rx, r0);
@@ -443,12 +443,12 @@ static int xlat_mem_wr(xlat_state_t *xs)
 // -----------------------------------------------------------------------------
 static int xlat_mem_rd(xlat_state_t *xs)
 {
+    int x, end = O_X;
     int r0 = xlat_reserve_register_index(xs, 32, 0);
     int ri = xlat_reserve_register(xs, 16, R_I, &xs->ctx->i);
     xlat_emit_mov_i64r64(xs->xb, (uint64_t)xs->ctx->rom, r0);
     xlat_emit_add_r64r64(xs->xb, ri, r0);
 
-    int x, end = O_X;
     for (x = 0; x <= end; ++x) {
         int rx = xlat_reserve_register(xs, 8, x, &xs->ctx->v[x]); // RO?
         xlat_emit_mov_rmr8(xs->xb, r0, rx);
@@ -623,10 +623,11 @@ static void translate_block(c8_context_t *ctx, xlat_block_t *xb)
 // -----------------------------------------------------------------------------
 long c8_execute_cycles_dbt(c8_context_t *ctx, long cycles)
 {
+    long start_cycles;
     xlat_block_t blocks[ROM_SIZE], *pblock;
     memset(blocks, 0, sizeof(xlat_block_t) * ROM_SIZE);
 
-    long start_cycles = ctx->cycles;
+    start_cycles = ctx->cycles;
     while (cycles > 0) {
         // fetch the block for this instruction, translating when necessary
         pblock = &blocks[ctx->pc];

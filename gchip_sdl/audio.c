@@ -34,8 +34,9 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
 // -----------------------------------------------------------------------------
 void audio_init(audio_data_t *audio)
 {
-    int i;
+    SDL_AudioSpec fmt;
     float wave;
+    int i;
 
     audio->buffer = (uint8_t *)malloc(2 * num_samples);
     audio->pos = 0;
@@ -46,7 +47,6 @@ void audio_init(audio_data_t *audio)
         audio->buffer[i] = (uint8_t)(127 * wave);
     }
 
-    SDL_AudioSpec fmt;
     fmt.freq = 22050;
     fmt.format = AUDIO_S16;
     fmt.channels = 1;

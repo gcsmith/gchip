@@ -69,13 +69,15 @@ void graphics_init(graphics_t *gfx, int width, int height, int bg, int fg)
 void graphics_update(graphics_t *gfx, uint8_t *src, int system)
 {
     int x, y;
+    void *pbuffer;
+    uint8_t *surf;
 
     // lock the pbo for write only access
     glBufferData(GL_PIXEL_UNPACK_BUFFER, gfx->pbo_sz, NULL, GL_DYNAMIC_DRAW);
-    void *pbuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+    pbuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
     // memset(pbuffer, 0, pbo_sz);
 
-    uint8_t *surf = (uint8_t *)pbuffer;
+    surf = (uint8_t *)pbuffer;
     if (system == SYSTEM_MCHIP) {
         uint32_t *src32 = (uint32_t *)src;
         for (y = 0; y < MCHIP_YRES; ++y) {
@@ -104,13 +106,14 @@ void graphics_update(graphics_t *gfx, uint8_t *src, int system)
 void graphics_render(graphics_t *gfx, int system)
 {
     int width = SCHIP_XRES, height = SCHIP_YRES;
+    float tex_width, tex_height;
+
     if (system == SYSTEM_MCHIP) {
         width = MCHIP_XRES;
         height = MCHIP_YRES;
     }
-
-    float tex_width  = width / (float)gfx->texture_dim;
-    float tex_height = height / (float)gfx->texture_dim;
+    tex_width  = width / (float)gfx->texture_dim;
+    tex_height = height / (float)gfx->texture_dim;
 
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, tex_height);
