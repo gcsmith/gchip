@@ -38,14 +38,11 @@ typedef struct chip8_thread {
     uint8_t *framebuffer;
 } chip8_thread_t;
 
-typedef struct perf_thread {
-    c8_context_t *ctx;          // chip8 context to monitor
-    SDL_Thread *thread;         // handle to this thread
-    SDL_mutex *perf_lock;       // lock for terminating condition
-    SDL_cond *perf_cond;        // terminating condition
-    long cycles_per_second;     // current cycles/s count
-    int running;                // control thread termination
-} perf_thread_t;
+typedef struct perf_args {
+    c8_context_t *ctx;          // chip8 emulator context
+    long last_cycles;           // cycle count on last event
+    SDL_TimerID id;             // handle to this timer event
+} perf_args_t;
 
 typedef struct window_state {
     SDL_Window *window;         // handle to SDL window
@@ -74,16 +71,14 @@ int handle_key_wait(void *data)
 // -----------------------------------------------------------------------------
 int handle_snd_ctrl(void *data, int enable)
 {
-    if (enable)
-        SDL_PauseAudio(0);
-    else
-        SDL_PauseAudio(1);
+    SDL_PauseAudio(enable ? 0 : 1);
     return 1;
 }
 
 // -----------------------------------------------------------------------------
 int handle_set_mode(void *data, int system)
 {
+    log_dbg("TODO: size window on mode change\n");
     return 1;
 }
 
@@ -185,58 +180,13 @@ void destroy_chip8_thread(chip8_thread_t *ct)
 }
 
 // -----------------------------------------------------------------------------
-// Display the number of instructions executed each second.
-//
-int run_perf_thread(void *data)
+Uint32 perf_timer_event(Uint32 interval, void *param)
 {
-    perf_thread_t *pt = (perf_thread_t *)data;
-    int curr_cycles, prev_cycles = pt->ctx->cycles;
-
-    for (;;) {
-        SDL_LockMutex(pt->perf_lock);
-        SDL_CondWaitTimeout(pt->perf_cond, pt->perf_lock, 1000);
-        if (!pt->running)
-            break;
-
-        curr_cycles = pt->ctx->cycles;
-        log_info("cyles per second: %d\n", curr_cycles - prev_cycles);
-        prev_cycles = curr_cycles;
-    }
-    return 0;
-}
-
-// -----------------------------------------------------------------------------
-perf_thread_t *create_perf_thread(c8_context_t *ctx)
-{
-    perf_thread_t *pt = (perf_thread_t *)calloc(1, sizeof(perf_thread_t));
-    pt->ctx = ctx;
-    pt->running = 1;
-
-    pt->perf_lock = SDL_CreateMutex();
-    pt->perf_cond = SDL_CreateCond();
-
-    pt->thread = SDL_CreateThread(run_perf_thread, pt);
-    if (pt->thread)
-        return pt;
-
-    log_err("failed to create performance report thread\n");
-    SAFE_FREE(pt);
-    return NULL;
-}
-
-// -----------------------------------------------------------------------------
-void destroy_perf_thread(perf_thread_t *pt)
-{
-    pt->running = 0;
-
-    // signal the thread to terminate
-    SDL_CondSignal(pt->perf_cond);
-    SDL_WaitThread(pt->thread, NULL);
-
-    // finally, free up whatever resources we've allocated
-    SDL_DestroyMutex(pt->perf_lock);
-    SDL_DestroyCond(pt->perf_cond);
-    SAFE_FREE(pt);
+    perf_args_t *pa = (perf_args_t *)param;
+    long cycle_delta = pa->ctx->cycles - pa->last_cycles;
+    pa->last_cycles = pa->ctx->cycles;
+    log_info("cycles per second: %d\n", cycle_delta);
+    return interval;
 }
 
 // -----------------------------------------------------------------------------
@@ -429,8 +379,8 @@ int main(int argc, char *argv[])
     cmdargs_t *ca = &g_ca;
     c8_context_t *ctx;
     chip8_thread_t *ct;
-    perf_thread_t *pt;
     window_state_t ws;
+    perf_args_t pa;
 
     atexit(exit_cleanup);
 
@@ -459,7 +409,10 @@ int main(int argc, char *argv[])
 
     // create the emulator and performance monitoring threads
     ct = create_chip8_thread(ctx, ca->speed);
-    pt = create_perf_thread(ctx);
+
+    pa.ctx = ctx;
+    pa.last_cycles = 0;
+    pa.id = SDL_AddTimer(1000, perf_timer_event, (void *)&pa);
 
     // begin processing of window events
     ws.fullscreen = ca->fullscreen;
@@ -470,7 +423,7 @@ int main(int argc, char *argv[])
     window_event_pump(ct, &ws);
 
     // free up whatever resources we've allocated
-    destroy_perf_thread(pt);
+    SDL_RemoveTimer(pa.id);
     destroy_chip8_thread(ct);
     c8_destroy_context(ctx);
     return 0;
