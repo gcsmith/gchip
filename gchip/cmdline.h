@@ -26,8 +26,7 @@ typedef struct cmdargs {
     int debugger;       // enable debugging interface
     int max_cycles;     // set maximum number of cycles to execute
     int fullscreen;     // start in fullscreen mode
-    int width;          // display width
-    int height;         // display height
+    int scale;          // window size scaling factor
     int bgcolor;        // background color
     int fgcolor;        // foreground color
     int vsync;          // enable vertical sync

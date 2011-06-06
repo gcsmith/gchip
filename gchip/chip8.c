@@ -162,17 +162,20 @@ void c8_set_system(c8_context_t *ctx, int system)
     case SYSTEM_CHIP8:
         log_dbg("Setting system to CHIP8.\n");
         ctx->system = SYSTEM_CHIP8;
+        ctx->fn.set_mode(ctx, SYSTEM_CHIP8, CHIP8_XRES, CHIP8_YRES);
         break;
 #ifdef HAVE_HCHIP_SUPPORT
     case SYSTEM_HCHIP:
         log_dbg("Setting system to HCHIP.\n");
         ctx->system = SYSTEM_HCHIP;
+        ctx->fn.set_mode(ctx, SYSTEM_HCHIP, HCHIP_XRES, HCHIP_YRES);
         break;
 #endif
 #ifdef HAVE_SCHIP_SUPPORT
     case SYSTEM_SCHIP:
         log_dbg("Setting system to SCHIP.\n");
         ctx->system = SYSTEM_SCHIP;
+        ctx->fn.set_mode(ctx, SYSTEM_SCHIP, SCHIP_XRES, SCHIP_YRES);
         break;
 #endif
 #ifdef HAVE_MCHIP_SUPPORT
@@ -184,11 +187,10 @@ void c8_set_system(c8_context_t *ctx, int system)
             ctx->gfx_size = MCHIP_XRES * MCHIP_YRES * 4;
             ctx->gfx = (uint8_t *)low_realloc(ctx->gfx, ctx->gfx_size);
         }
+        ctx->fn.set_mode(ctx, SYSTEM_MCHIP, MCHIP_XRES, MCHIP_YRES);
         break;
 #endif
     }
-
-    ctx->fn.set_mode(ctx, ctx->system);
 }
 
 // -----------------------------------------------------------------------------

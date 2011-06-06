@@ -118,12 +118,13 @@ int cmdline_parse(int argc, char *argv[], cmdargs_t *args)
         { "version",    no_argument,        NULL, CMDLINE_VERSION },
         { NULL,         no_argument,        NULL, 0 }
     };
-    int opt, index = 0, scale = 1;
+    int opt, index = 0;
 
     // set some reasonable defaults
     args->debugger = 0;
     args->max_cycles = 0;
     args->fullscreen = 0;
+    args->scale = 1;
     args->bgcolor = 0x00000000;
     args->fgcolor = 0xFFFFFFFF;
     args->vsync = 0;
@@ -159,7 +160,7 @@ int cmdline_parse(int argc, char *argv[], cmdargs_t *args)
             args->rompath = strdup(optarg);
             break;
         case 's':
-            scale = strtol(optarg, NULL, 0);
+            args->scale = strtol(optarg, NULL, 0);
             break;
         case CMDLINE_BGCOLOR:
             args->bgcolor = strtol(optarg, NULL, 0);
@@ -212,12 +213,10 @@ int cmdline_parse(int argc, char *argv[], cmdargs_t *args)
         return -1;
     }
     
-    if (scale <= 0 || scale > 20) {
+    if (args->scale <= 0 || args->scale > 20) {
         log_err("invalid scale factor specified (must be 0-20)\n");
         return -1;
     }
-    args->width = 64 * scale;
-    args->height = 32 * scale;
 
     return 0;
 }

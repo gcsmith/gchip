@@ -26,6 +26,10 @@
 #include "cmdline.h"
 #include "graphics.h"
 
+#define EMU_EVENT_PERF 0
+#define EMU_EVENT_SYNC 1
+#define EMU_EVENT_MODE 2
+
 typedef struct chip8_thread {
     c8_context_t *ctx;          // chip8 emulator context
     SDL_Thread *thread;         // handle to this thread
@@ -41,18 +45,28 @@ typedef struct chip8_thread {
 typedef struct perf_args {
     c8_context_t *ctx;          // chip8 emulator context
     long last_cycles;           // cycle count on last event
+    long cycles_per_sec;        // cycles executed per second
     SDL_TimerID id;             // handle to this timer event
 } perf_args_t;
 
 typedef struct window_state {
     SDL_Window *window;         // handle to SDL window
     SDL_GLContext glcontext;    // handle to GL render context
-    int width, height;          // width and height of display window
+    int width, height, scale;   // width and height of display window
     int bgcolor, fgcolor;       // background and foreground colors
-    int fullscreen;             // fullscreen toggle
+    int fs;                     // fullscreen toggle
 } window_state_t;
 
-cmdargs_t g_ca;
+// -----------------------------------------------------------------------------
+INLINE void push_user_event(int code, void *data1, void *data2)
+{
+    SDL_Event event;
+    event.type = SDL_USEREVENT;
+    event.user.code = code;
+    event.user.data1 = data1;
+    event.user.data2 = data2;
+    SDL_PushEvent(&event);
+}
 
 // -----------------------------------------------------------------------------
 int handle_key_wait(void *data)
@@ -76,9 +90,9 @@ int handle_snd_ctrl(void *data, int enable)
 }
 
 // -----------------------------------------------------------------------------
-int handle_set_mode(void *data, int system)
+int handle_set_mode(void *data, int system, int width, int height)
 {
-    log_dbg("TODO: size window on mode change\n");
+    push_user_event(EMU_EVENT_MODE, (void *)(long)width, (void *)(long)height);
     return 1;
 }
 
@@ -87,6 +101,7 @@ int handle_vid_sync(void *data)
 {
     chip8_thread_t *ct = (chip8_thread_t *)data;
     memcpy(ct->framebuffer, ct->ctx->gfx, ct->ctx->gfx_size);
+    push_user_event(EMU_EVENT_SYNC, NULL, NULL);
     return 1;
 }
 
@@ -183,9 +198,9 @@ void destroy_chip8_thread(chip8_thread_t *ct)
 Uint32 perf_timer_event(Uint32 interval, void *param)
 {
     perf_args_t *pa = (perf_args_t *)param;
-    long cycle_delta = pa->ctx->cycles - pa->last_cycles;
+    pa->cycles_per_sec = pa->ctx->cycles - pa->last_cycles;
     pa->last_cycles = pa->ctx->cycles;
-    log_info("cycles per second: %d\n", cycle_delta);
+    push_user_event(EMU_EVENT_PERF, (void *)&pa->cycles_per_sec, NULL);
     return interval;
 }
 
@@ -227,14 +242,20 @@ void print_version_info(void)
 // -----------------------------------------------------------------------------
 // Create an SDL window of the specified dimensions and initialize GL/GLEW.
 //
-int create_window(SDL_Window **window, SDL_GLContext *context, cmdargs_t *ca)
+int create_window(window_state_t *ws, cmdargs_t *ca)
 {
     int flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
     GLenum rc;
 
-    assert(NULL != window);
-    assert(NULL != context);
+    assert(NULL != ws);
     assert(NULL != ca);
+
+    ws->fs      = ca->fullscreen;
+    ws->bgcolor = ca->bgcolor;
+    ws->fgcolor = ca->fgcolor;
+    ws->scale   = ca->scale;
+    ws->width   = ca->scale * 64;
+    ws->height  = ca->scale * 32;
 
     log_info("Initializing SDL subsystems...\n");
     if (0 > SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
@@ -252,17 +273,17 @@ int create_window(SDL_Window **window, SDL_GLContext *context, cmdargs_t *ca)
         flags |= SDL_WINDOW_FULLSCREEN;
 
     // create the application window
-    *window = SDL_CreateWindow(gchip_desc, SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED, ca->width, ca->height, flags);
-    if (NULL == *window) {
+    ws->window = SDL_CreateWindow(gchip_desc, SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED, ws->width, ws->height, flags);
+    if (NULL == ws->window) {
         log_err("failed to create SDL window (%s)\n", SDL_GetError());
         return -1;
     }
 
     // create the opengl rendering context and initialize GLEW
     log_info("Initializing GL context...\n");
-    *context = SDL_GL_CreateContext(*window);
-    if (NULL == *context) {
+    ws->glcontext = SDL_GL_CreateContext(ws->window);
+    if (NULL == ws->glcontext) {
         log_err("failed to create GL context (%s)\n", SDL_GetError());
         return -1;
     }
@@ -288,9 +309,26 @@ int process_window_events(chip8_thread_t *ct, window_state_t *ws)
     SDL_Event event;
     SDL_bool fullscreen;
     int keypad_index;
+    char buffer[64];
+    long cps;
 
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
+        case SDL_USEREVENT:
+            switch (event.user.code) {
+            case EMU_EVENT_PERF:
+                cps = *(long *)event.user.data1;
+                snprintf(buffer, 64, "%s [%ld cycles/sec]", gchip_desc, cps);
+                SDL_SetWindowTitle(ws->window, buffer);
+                break;
+            case EMU_EVENT_MODE:
+                ws->width = (long)event.user.data1 * ws->scale;
+                ws->height = (long)event.user.data2 * ws->scale;
+                SDL_SetWindowSize(ws->window, ws->width, ws->height);
+                glViewport(0, 0, ws->width, ws->height);
+                break;
+            }
+            break;
         case SDL_WINDOWEVENT:
             // adjust the opengl viewport if the window is resized
             switch (event.window.event) {
@@ -304,8 +342,8 @@ int process_window_events(chip8_thread_t *ct, window_state_t *ws)
             if (event.key.keysym.mod & KMOD_ALT) {
                 if (event.key.keysym.sym == SDLK_RETURN) {
                     // toggle between windowed and fullscreen modes
-                    ws->fullscreen = !ws->fullscreen;
-                    fullscreen = ws->fullscreen ? SDL_TRUE : SDL_FALSE;
+                    ws->fs = !ws->fs;
+                    fullscreen = ws->fs ? SDL_TRUE : SDL_FALSE;
                     SDL_SetWindowFullscreen(ws->window, fullscreen);
                 }
 
@@ -349,7 +387,6 @@ int window_event_pump(chip8_thread_t *ct, window_state_t *ws)
 
     while (process_window_events(ct, ws)) {
         // only update the destination surface when the display has changed
-
         if (ctx->system == SYSTEM_MCHIP) {
             graphics_update(&gfx, ct->framebuffer, ctx->system);
         }
@@ -367,59 +404,47 @@ int window_event_pump(chip8_thread_t *ct, window_state_t *ws)
 }
 
 // -----------------------------------------------------------------------------
-void exit_cleanup(void)
-{
-    cmdline_destroy(&g_ca);
-    SDL_Quit();
-}
-
-// -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-    cmdargs_t *ca = &g_ca;
+    cmdargs_t ca;
     c8_context_t *ctx;
     chip8_thread_t *ct;
     window_state_t ws;
     perf_args_t pa;
 
-    atexit(exit_cleanup);
+    atexit(SDL_Quit);
 
     // process the command line arguments and check for validity
-    if (0 > cmdline_parse(argc, argv, ca))
+    if (0 > cmdline_parse(argc, argv, &ca))
         cmdline_display_usage();
 
     // special case: perform lockstep execution test (CASE & DBT)
-    if (ca->mode == MODE_TEST) {
+    if (ca.mode == MODE_TEST) {
         log_info("comparing interpreter and binary translator...\n");
-        return c8_debug_lockstep_test(ca->rompath);
+        return c8_debug_lockstep_test(ca.rompath);
     }
 
     // create the emulator context and load the specified rom file
-    c8_create_context(&ctx, ca->mode);
-    if (0 > c8_load_file(ctx, ca->rompath)) {
-        log_err("failed to load rom \"%s\"\n", ca->rompath);
+    c8_create_context(&ctx, ca.mode);
+    if (0 > c8_load_file(ctx, ca.rompath)) {
+        log_err("failed to load rom \"%s\"\n", ca.rompath);
         return 1;
     }
 
-    c8_set_debugger_enabled(ctx, ca->debugger);
+    c8_set_debugger_enabled(ctx, ca.debugger);
 
     // create and display the application window
-    if (0 > create_window(&ws.window, &ws.glcontext, ca))
+    if (0 > create_window(&ws, &ca))
         return 1;
 
     // create the emulator and performance monitoring threads
-    ct = create_chip8_thread(ctx, ca->speed);
+    ct = create_chip8_thread(ctx, ca.speed);
 
     pa.ctx = ctx;
     pa.last_cycles = 0;
     pa.id = SDL_AddTimer(1000, perf_timer_event, (void *)&pa);
 
     // begin processing of window events
-    ws.fullscreen = ca->fullscreen;
-    ws.bgcolor    = ca->bgcolor;
-    ws.fgcolor    = ca->fgcolor;
-    ws.width      = ca->width;
-    ws.height     = ca->height;
     window_event_pump(ct, &ws);
 
     // free up whatever resources we've allocated

@@ -61,7 +61,7 @@
 
 typedef int (*key_wait_fn)(void *);
 typedef int (*snd_ctrl_fn)(void *, int);
-typedef int (*set_mode_fn)(void *, int);
+typedef int (*set_mode_fn)(void *, int, int, int);
 typedef int (*vid_sync_fn)(void *);
 
 typedef struct c8_handlers {
