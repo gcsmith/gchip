@@ -168,7 +168,7 @@ chip8_thread_t *create_chip8_thread(c8_context_t *ctx, int speed)
     ct->framebuffer = (uint8_t *)malloc(MCHIP_XRES * MCHIP_YRES * 4);
 
     // create and launch the emulator thread
-    if (NULL == (ct->thread = SDL_CreateThread(run_chip8_thread, ct))) {
+    if (NULL == (ct->thread = SDL_CreateThread(run_chip8_thread, "emu", ct))) {
         log_err("failed to create emulator thread\n");
         SAFE_FREE(ct);
         return NULL;
