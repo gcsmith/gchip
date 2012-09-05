@@ -38,6 +38,6 @@ set(gchip_sdl_lib
     gchip
 )
 
-add_executable(gchip_sdl ${MKPROP} ${gchip_sdl_src} ${gchip_sdl_hdr})
+add_executable(gchip_sdl ${gchip_sdl_src} ${gchip_sdl_hdr})
 target_link_libraries(gchip_sdl ${gchip_sdl_lib})
 
