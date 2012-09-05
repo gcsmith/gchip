@@ -6,14 +6,14 @@
 
 project(gchip_sdl)
 
-find_package(GLEW REQUIRED)
+find_package(GLEW   REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(SDL REQUIRED)
+find_package(SDL2   REQUIRED)
 
 include_directories(
     ${GLEW_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
-    ${SDL_INCLUDE_DIR}
+    ${SDL2_INCLUDE_DIR}
 )
 
 add_definitions(
@@ -34,7 +34,7 @@ set(gchip_sdl_src
 set(gchip_sdl_lib
     ${GLEW_LIBRARIES}
     ${OPENGL_LIBRARIES}
-    ${SDL_LIBRARY}
+    ${SDL2_LIBRARY}
     gchip
 )
 

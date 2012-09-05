@@ -547,7 +547,7 @@ void xlat_emit_mov_i8m8(xlat_block_t *xb, uint8_t is, uint8_t *md)
 }
 
 // XXX: borrowed from PCSX2 -- rewrite me
-FORCEINLINE void WriteRmOffset(xlat_block_t *xb, int to, int32_t offset)
+INLINE void WriteRmOffset(xlat_block_t *xb, int to, int32_t offset)
 {
     if ((to & 7) == 7) {
         if (offset == 0) {
@@ -581,7 +581,7 @@ FORCEINLINE void WriteRmOffset(xlat_block_t *xb, int to, int32_t offset)
 }
 
 // XXX: borrowed from PCSX2 -- rewrite me
-FORCEINLINE void WriteRmOffsetFrom(xlat_block_t *xb, int to, int from, int offset)
+INLINE void WriteRmOffsetFrom(xlat_block_t *xb, int to, int from, int offset)
 {
     if ((from&7) == 4) {
         if( offset == 0 ) {
