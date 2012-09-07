@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # Author:  Garrett Smith
-# File:    gchip/CMakeLists.txt
+# File:    src/CMakeLists.txt
 # Created: 05/24/2011
 # ------------------------------------------------------------------------------
 
@@ -22,15 +22,15 @@ set(gchip_src
 
 if(NOT HAVE_GETOPT_H)
     list(APPEND gchip_hdr
-        ${GNULIB_DIR}/getopt.h
-        ${GNULIB_DIR}/getopt_int.h
-        ${GNULIB_DIR}/gettext.h
+        gnulib/getopt.h
+        gnulib/getopt_int.h
+        gnulib/gettext.h
     )
     list(APPEND gchip_src
-        ${GNULIB_DIR}/getopt.c
-        ${GNULIB_DIR}/getopt1.c
+        gnulib/getopt.c
+        gnulib/getopt1.c
     )
-    include_directories(${GNULIB_DIR})
+    include_directories(gnulib)
 endif(NOT HAVE_GETOPT_H)
 
 if(HAVE_RECOMPILER)
@@ -41,4 +41,14 @@ if(HAVE_RECOMPILER)
 endif(HAVE_RECOMPILER)
 
 add_library(gchip ${gchip_src})
+
+# add each sub-directory
+
+if(BUILD_EGL)
+    add_subdirectory(egl)
+endif(BUILD_EGL)
+
+if(BUILD_SDL)
+    add_subdirectory(sdl)
+endif(BUILD_SDL)
 

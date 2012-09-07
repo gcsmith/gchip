@@ -28,7 +28,6 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set(GCHIP_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_MODULE_PATH ${GCHIP_MODULE_PATH} ${CMAKE_MODULE_PATH})
-set(GNULIB_DIR "${CMAKE_SOURCE_DIR}/gnulib")
 
 # detect the platform and architecture
 
@@ -61,13 +60,13 @@ include(CheckFunctionExists)
 check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
 
 configure_file(
-    ${CMAKE_SOURCE_DIR}/gchip/config.h.in
-    ${CMAKE_BINARY_DIR}/gchip/config.h
+    ${CMAKE_SOURCE_DIR}/src/config.h.in
+    ${CMAKE_BINARY_DIR}/src/config.h
 )
 
 include_directories(
-    "${CMAKE_SOURCE_DIR}/gchip"
-    "${CMAKE_BINARY_DIR}/gchip"
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_BINARY_DIR}/src"
 )
 
 message(STATUS "--------------------------------------------------------------")
@@ -82,15 +81,7 @@ message(STATUS "HAVE_SCHIP_SUPPORT:     ${HAVE_SCHIP_SUPPORT}")
 message(STATUS "HAVE_MCHIP_SUPPORT:     ${HAVE_MCHIP_SUPPORT}")
 message(STATUS "--------------------------------------------------------------")
 
-# add each sub-project
+# add each sub-directory
 
-add_subdirectory(gchip)
-
-if(BUILD_EGL)
-    add_subdirectory(gchip_egl)
-endif(BUILD_EGL)
-
-if(BUILD_SDL)
-    add_subdirectory(gchip_sdl)
-endif(BUILD_SDL)
+add_subdirectory(src)
 
