@@ -18,6 +18,14 @@
 #ifndef CONFIG__H
 #define CONFIG__H
 
+#cmakedefine ARCH_X86
+#cmakedefine ARCH_X86_64
+#cmakedefine ARCH_ARM
+
+#cmakedefine PLATFORM_WIN32
+#cmakedefine PLATFORM_APPLE
+#cmakedefine PLATFORM_UNIX
+
 #cmakedefine HAVE_HCHIP_SUPPORT
 #cmakedefine HAVE_SCHIP_SUPPORT
 #cmakedefine HAVE_MCHIP_SUPPORT
@@ -26,6 +34,11 @@
 #cmakedefine HAVE_PTR_INTERPRETER
 #cmakedefine HAVE_CACHE_INTERPRETER
 #cmakedefine HAVE_RECOMPILER
+
+#define GCHIP_VERSION_MAJOR  @GCHIP_VERSION_MAJOR@
+#define GCHIP_VERSION_MINOR  @GCHIP_VERSION_MINOR@
+#define GCHIP_VERSION_PATCH  @GCHIP_VERSION_PATCH@
+#define GCHIP_VERSION_STR    "@BUILD_VERSION@"
 
 #endif // CONFIG__H
 

@@ -19,8 +19,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "SDL.h"
-#include "SDL_thread.h"
+#include <SDL.h>
+#include <SDL_thread.h>
+
 #include "audio.h"
 #include "chip8.h"
 #include "cmdline.h"
@@ -31,30 +32,33 @@
 #define EMU_EVENT_MODE 2
 
 typedef struct chip8_thread {
-    c8_context_t *ctx;          // chip8 emulator context
-    SDL_Thread *thread;         // handle to this thread
-    SDL_mutex *input_lock;      // blocking input lock
-    SDL_cond *input_cond;       // blocking input condition
-    int keymap[256];            // map SDL key press to hex keypad
-    int last_keypress;          // keep track of last hex keypad index
-    int speed;                  // emulator speed (instructions/second)
-    int running;                // control thread termination
-    uint8_t *framebuffer;
+    c8_context_t *ctx;              // chip8 emulator context
+    SDL_Thread   *thread;           // handle to this thread
+    SDL_mutex    *input_lock;       // blocking input lock
+    SDL_cond     *input_cond;       // blocking input condition
+    unsigned int  keymap[256];      // map SDL key press to hex keypad
+    unsigned int  last_keypress;    // keep track of last hex keypad index
+    unsigned int  speed;            // emulator speed (instructions/second)
+    unsigned int  running;          // control thread termination
+    uint8_t      *framebuffer;
 } chip8_thread_t;
 
 typedef struct perf_args {
-    c8_context_t *ctx;          // chip8 emulator context
-    long last_cycles;           // cycle count on last event
-    long cycles_per_sec;        // cycles executed per second
-    SDL_TimerID id;             // handle to this timer event
+    c8_context_t  *ctx;             // chip8 emulator context
+    unsigned long  last_cycles;     // cycle count on last event
+    unsigned long  cycles_per_sec;  // cycles executed per second
+    SDL_TimerID    id;              // handle to this timer event
 } perf_args_t;
 
 typedef struct window_state {
-    SDL_Window *window;         // handle to SDL window
-    SDL_GLContext glcontext;    // handle to GL render context
-    int width, height, scale;   // width and height of display window
-    int bgcolor, fgcolor;       // background and foreground colors
-    int fs;                     // fullscreen toggle
+    SDL_Window    *window;          // handle to SDL window
+    SDL_GLContext  glcontext;       // handle to GL render context
+    unsigned int   width;           // window width
+    unsigned int   height;          // window height
+    unsigned int   scale;           // window scaling factor
+    unsigned int   bgcolor;         // background color
+    unsigned int   fgcolor;         // foreground color
+    unsigned int   fs;              // fullscreen toggle
 } window_state_t;
 
 // -----------------------------------------------------------------------------
@@ -106,10 +110,9 @@ int handle_vid_sync(void *data)
 }
 
 // -----------------------------------------------------------------------------
-void init_key_mappings(int *key)
+void init_key_mappings(unsigned int *key)
 {
-    int i;
-    for (i = 0; i < 256; i++) key[i] = -1;
+    for (int i = 0; i < 256; i++) key[i] = -1;
     key[SDLK_1] = 0x1; key[SDLK_2] = 0x2; key[SDLK_3] = 0x3; key[SDLK_4] = 0xC;
     key[SDLK_q] = 0x4; key[SDLK_w] = 0x5; key[SDLK_e] = 0x6; key[SDLK_r] = 0xD;
     key[SDLK_a] = 0x7; key[SDLK_s] = 0x8; key[SDLK_d] = 0x9; key[SDLK_f] = 0xE;

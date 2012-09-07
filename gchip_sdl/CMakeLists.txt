@@ -16,27 +16,11 @@ include_directories(
     ${SDL2_INCLUDE_DIR}
 )
 
-add_definitions(
-    ${GLEW_DEFINITIONS}
-)
+add_definitions(${GLEW_DEFINITIONS})
 
-set(gchip_sdl_hdr
-    audio.h
-    graphics.h
-)
-
-set(gchip_sdl_src
-    audio.c
-    graphics.c
-    main.c
-)
-
-set(gchip_sdl_lib
-    ${GLEW_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    ${SDL2_LIBRARY}
-    gchip
-)
+set(gchip_sdl_hdr audio.h graphics.h)
+set(gchip_sdl_src audio.c graphics.c main.c)
+set(gchip_sdl_lib ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${SDL2_LIBRARY} gchip)
 
 add_executable(gchip_sdl ${MKPROP} ${gchip_sdl_src} ${gchip_sdl_hdr})
 target_link_libraries(gchip_sdl ${gchip_sdl_lib})

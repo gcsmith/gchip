@@ -49,7 +49,7 @@ void temp_clear_screen(c8_context_t *ctx)
 // -----------------------------------------------------------------------------
 void *low_malloc(size_t length)
 {
-#if ARCH_X86_64
+#ifdef ARCH_X86_64
     return mmap(NULL, length, PROT_READ | PROT_WRITE,
                 MAP_ANONYMOUS | MAP_PRIVATE | MAP_32BIT, 0, 0);
 #else
@@ -60,7 +60,7 @@ void *low_malloc(size_t length)
 // -----------------------------------------------------------------------------
 void *low_calloc(size_t length)
 {
-#if ARCH_X86_64
+#ifdef ARCH_X86_64
     void *p = mmap(NULL, length, PROT_READ | PROT_WRITE,
                    MAP_ANONYMOUS | MAP_PRIVATE | MAP_32BIT, 0, 0);
     memset(p, 0, length);
@@ -73,7 +73,7 @@ void *low_calloc(size_t length)
 // -----------------------------------------------------------------------------
 void *low_realloc(void *p, size_t length)
 {
-#if ARCH_X86_64
+#ifdef ARCH_X86_64
     low_free(p);
     return low_calloc(length);
 #else

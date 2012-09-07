@@ -22,7 +22,8 @@ option(HAVE_CACHE_INTERPRETER "Build with caching interpreter"       ON)
 option(HAVE_RECOMPILER        "Build with recompiler support"        ON)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING
+        "Build type: None Debug Release RelWithDebInfo MinSizeRel" FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(GCHIP_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -34,23 +35,24 @@ set(GNULIB_DIR "${CMAKE_SOURCE_DIR}/gnulib")
 include(${GCHIP_MODULE_PATH}/DetectPlatform.cmake)
 include(${GCHIP_MODULE_PATH}/DetectArchitecture.cmake)
 
-# encode version number as <major>.<minor>.<revision>:<changeset>
+# encode version number as <major>.<minor>.<patch>:<changeset>
 
-set(GCHIP_VER_MAJ "0")
-set(GCHIP_VER_MIN "0")
-set(GCHIP_VER_REV "1")
+set(GCHIP_VERSION_MAJOR "0")
+set(GCHIP_VERSION_MINOR "0")
+set(GCHIP_VERSION_PATCH "1")
 
 find_package(Git)
 if(GIT_FOUND)
     GIT_WC_INFO(${PROJECT_SOURCE_DIR} GCHIP)
-    set(GCHIP_VER_ID ${GCHIP_WC_REVISION_HASH})
+    set(GCHIP_VERSION_EXTRA ${GCHIP_WC_REVISION_HASH})
 endif(GIT_FOUND)
 
-set(BUILD_VERSION "${GCHIP_VER_MAJ}.${GCHIP_VER_MIN}.${GCHIP_VER_REV}:${GCHIP_VER_ID}")
+set(BUILD_VERSION "${GCHIP_VERSION_MAJOR}.${GCHIP_VERSION_MINOR}.${GCHIP_VERSION_PATCH}:${GCHIP_VERSION_EXTRA}")
 
 # perform configuration and generate config.h file
 
 include(CheckIncludeFiles)
+check_include_files(getopt.h HAVE_GETOPT_H)
 check_include_files(intrin.h HAVE_INTRIN_H)
 check_include_files(stdint.h HAVE_STDINT_H)
 check_include_files(windows.h HAVE_WINDOWS_H)
@@ -59,7 +61,7 @@ include(CheckFunctionExists)
 check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
 
 configure_file(
-    ${CMAKE_SOURCE_DIR}/gchip/config.h.cmake
+    ${CMAKE_SOURCE_DIR}/gchip/config.h.in
     ${CMAKE_BINARY_DIR}/gchip/config.h
 )
 
@@ -72,33 +74,16 @@ message(STATUS "--------------------------------------------------------------")
 message(STATUS "CMAKE_BUILD_TYPE:       ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_INSTALL_PREFIX:   ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "CMAKE_VERBOSE_MAKEFILE: ${CMAKE_VERBOSE_MAKEFILE}")
+message(STATUS "BUILD_VERSION:          ${BUILD_VERSION}")
 message(STATUS "BUILD_EGL:              ${BUILD_EGL}")          
 message(STATUS "BUILD_SDL:              ${BUILD_SDL}")
-message(STATUS "BUILD_VERSION:          ${BUILD_VERSION}")
+message(STATUS "HAVE_HCHIP_SUPPORT:     ${HAVE_HCHIP_SUPPORT}")
+message(STATUS "HAVE_SCHIP_SUPPORT:     ${HAVE_SCHIP_SUPPORT}")
+message(STATUS "HAVE_MCHIP_SUPPORT:     ${HAVE_MCHIP_SUPPORT}")
 message(STATUS "--------------------------------------------------------------")
 
-set(BUILD_EGL ${BUILD_EGL} CACHE BOOL
-    "Build the gchip-egl frontend" FORCE)
-set(BUILD_SDL ${BUILD_SDL} CACHE BOOL
-    "Build the gchip-sdl frontend" FORCE)
-set(HAVE_HCHIP_SUPPORT ${HAVE_HCHIP_SUPPORT} CACHE BOOL
-    "Build with Chip-8 HiRes support" FORCE)
-set(HAVE_SCHIP_SUPPORT ${HAVE_SCHIP_SUPPORT} CACHE BOOL
-    "Build with SuperChip-8 support" FORCE)
-set(HAVE_MCHIP_SUPPORT ${HAVE_MCHIP_SUPPORT} CACHE BOOL
-    "Build with MegaChip-8 support" FORCE)
-set(HAVE_CASE_INTERPRETER ${HAVE_CASE_INTERPRETER} CACHE BOOL 
-    "Build with case-based interpreter" FORCE)
-set(HAVE_PTR_INTERPRETER ${HAVE_PTR_INTERPRETER} CACHE BOOL
-    "Build with pointer-based interpreter" FORCE)
-set(HAVE_CACHE_INTERPRETER ${HAVE_CACHE_INTERPRETER} CACHE BOOL
-    "Build with caching interpreter" FORCE)
-set(HAVE_RECOMPILER ${HAVE_RECOMPILER} CACHE BOOL
-    "Build with recompiler support" FORCE)
-set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING
-    "Choose type of build: None Debug Release RelWithDebInfo MinSizeRel" FORCE)
-
 # add each sub-project
+
 add_subdirectory(gchip)
 
 if(BUILD_EGL)

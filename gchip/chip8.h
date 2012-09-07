@@ -59,10 +59,10 @@
 #define OP_T    (ctx->opcode & 0xFFF)
 #define OP_24   ((OP_B << 16) | (ctx->rom[ctx->pc] << 8) | ctx->rom[ctx->pc+1])
 
-typedef int (*key_wait_fn)(void *);
-typedef int (*snd_ctrl_fn)(void *, int);
-typedef int (*set_mode_fn)(void *, int, int, int);
-typedef int (*vid_sync_fn)(void *);
+typedef int (*key_wait_fn)(void *data);
+typedef int (*snd_ctrl_fn)(void *data, int enable);
+typedef int (*set_mode_fn)(void *data, int system, int width, int height);
+typedef int (*vid_sync_fn)(void *data);
 
 typedef struct c8_handlers {
     key_wait_fn key_wait;       // wait for user keypad input

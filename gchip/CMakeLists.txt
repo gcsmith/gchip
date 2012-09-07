@@ -20,8 +20,7 @@ set(gchip_src
     interp.c
 )
 
-if(WIN32)
-    # use gnulib for windows portability
+if(NOT HAVE_GETOPT_H)
     list(APPEND gchip_hdr
         ${GNULIB_DIR}/getopt.h
         ${GNULIB_DIR}/getopt_int.h
@@ -32,7 +31,7 @@ if(WIN32)
         ${GNULIB_DIR}/getopt1.c
     )
     include_directories(${GNULIB_DIR})
-endif()
+endif(NOT HAVE_GETOPT_H)
 
 if(HAVE_RECOMPILER)
     list(APPEND gchip_src xlat.c)
